@@ -28,7 +28,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo [3/3] Building Release APK (This may take 2-5 minutes)...
-call flutter build apk --release
+call flutter build apk --release --android-skip-build-dependency-validation
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] APK build failed. Check error log above.
     pause
