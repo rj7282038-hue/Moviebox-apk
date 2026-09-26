@@ -1,0 +1,24 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Android
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+
+# IDE & OS
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
