@@ -557,6 +557,16 @@
     .player-title-area { flex: 1; }
     .player-title-area h3 { font-size: 16px; font-weight: 700; }
     .player-title-area p { font-size: 12px; color: var(--text-secondary); }
+    .player-tip-bar {
+      background: rgba(0, 229, 255, 0.08);
+      border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+      padding: 8px 24px;
+      font-size: 12px;
+      color: #7de8f7;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
     .player-sources {
       display: flex;
       gap: 8px;
@@ -783,7 +793,9 @@
   <ul class="nav-links">
     <li><a id="nav-home" class="active" onclick="goHome()">Home</a></li>
     <li><a id="nav-movies" onclick="goSearch('movie')">Movies</a></li>
+    <li><a id="nav-hindi" onclick="goSearch('hindi')">🇮🇳 Hindi Dubbed</a></li>
     <li><a id="nav-series" onclick="goSearch('series')">TV Shows</a></li>
+    <li><a id="nav-anime" onclick="goSearch('anime')">🎌 Anime</a></li>
     <li><a id="nav-livetv" onclick="goLiveTv()">Live TV</a></li>
   </ul>
   <div class="nav-right">
@@ -837,6 +849,17 @@
     </div>
   </div>
 
+  <!-- Bollywood & Hindi Dubbed -->
+  <div class="section" style="padding-top:36px">
+    <div class="section-header">
+      <h2 class="section-title">🇮🇳 Bollywood & <span>Hindi Dubbed</span></h2>
+      <a class="see-all" onclick="goSearch('hindi')">See All →</a>
+    </div>
+    <div class="cards-row" id="hindi-row">
+      ${skeletonCards(8)}
+    </div>
+  </div>
+
   <!-- Trending Series -->
   <div class="section" style="padding-top:36px">
     <div class="section-header">
@@ -844,6 +867,17 @@
       <a class="see-all" onclick="goSearch('series')">See All →</a>
     </div>
     <div class="cards-row" id="series-row">
+      ${skeletonCards(8)}
+    </div>
+  </div>
+
+  <!-- Anime & Asian Drama -->
+  <div class="section" style="padding-top:36px">
+    <div class="section-header">
+      <h2 class="section-title">🎌 Popular <span>Anime & Asian Drama</span></h2>
+      <a class="see-all" onclick="goSearch('anime')">See All →</a>
+    </div>
+    <div class="cards-row" id="anime-row">
       ${skeletonCards(8)}
     </div>
   </div>
@@ -874,8 +908,10 @@
     <input id="search-input-big" type="text" placeholder="Search for movies, TV shows..." oninput="debounceSearch()" />
   </div>
   <div class="filter-tabs">
-    <button class="filter-tab active" onclick="setFilter('movie', this)">Movies</button>
-    <button class="filter-tab" onclick="setFilter('series', this)">TV Shows</button>
+    <button class="filter-tab active" data-type="movie" onclick="setFilter('movie', this)">🎬 Movies</button>
+    <button class="filter-tab" data-type="series" onclick="setFilter('series', this)">📺 TV Shows</button>
+    <button class="filter-tab" data-type="hindi" onclick="setFilter('hindi', this)">🇮🇳 Hindi / Bollywood</button>
+    <button class="filter-tab" data-type="anime" onclick="setFilter('anime', this)">🎌 Anime & Drama</button>
   </div>
   <div class="search-grid" id="search-results">
     <div style="grid-column:1/-1; color:var(--text-muted); text-align:center; padding:60px 0; font-size:15px;">
@@ -943,6 +979,9 @@
       <p id="player-sub">—</p>
     </div>
   </div>
+  <div class="player-tip-bar">
+    <span>💡 <b>Audio & Language:</b> Player ke andar <b>⚙️ Settings / 🔊 Audio Track</b> se Hindi ya English choose karein. Agar koi server slow ho to upar dusra Server select karein.</span>
+  </div>
   <div class="player-sources" id="player-sources"></div>
   <div id="player-frame-wrap">
     <div class="player-loading" id="player-loading">
@@ -985,32 +1024,44 @@
   function goSearch(type = 'movie') {
     searchFilter = type;
     showPage('search-page');
-    document.querySelectorAll('.filter-tab').forEach((t, i) => {
-      t.classList.toggle('active', (i === 0 && type === 'movie') || (i === 1 && type === 'series'));
+    document.querySelectorAll('.filter-tab').forEach(t => {
+      t.classList.toggle('active', t.getAttribute('data-type') === type);
     });
     const q = document.getElementById('search-input-big').value.trim();
-    if (q) performSearch(q);
+    if (q) performSearch(q, type);
     else loadCatalogIntoSearch(type);
   }
 
   /* ═══════════ HOME: LOAD CATALOG ═══════════ */
   async function init() {
-    const [movies, series] = await Promise.all([
+    const [movies, series, hindiMovies, animeList] = await Promise.all([
       fetchCatalog('movie'),
-      fetchCatalog('series')
+      fetchCatalog('series'),
+      fetchCustomCatalog('movie', 'hindi'),
+      fetchCustomCatalog('series', 'anime')
     ]);
 
     heroMedia = movies[0] || null;
     if (heroMedia) renderHero(heroMedia);
 
     renderRow('movies-row', movies, 'movie');
+    renderRow('hindi-row', hindiMovies.length ? hindiMovies : movies.slice(6, 26), 'movie');
     renderRow('series-row', series, 'series');
+    renderRow('anime-row', animeList.length ? animeList : series.slice(6, 26), 'series');
     renderRow('classics-row', [...movies].reverse().slice(0, 20), 'movie');
   }
 
   async function fetchCatalog(type, skip = 0) {
     try {
       const r = await fetch(`${CINEMETA}/catalog/${type}/top.json?skip=${skip}`);
+      const d = await r.json();
+      return (d.metas || []);
+    } catch { return []; }
+  }
+
+  async function fetchCustomCatalog(type, q) {
+    try {
+      const r = await fetch(`${CINEMETA}/catalog/${type}/top/search=${encodeURIComponent(q)}.json`);
       const d = await r.json();
       return (d.metas || []);
     } catch { return []; }
@@ -1162,20 +1213,22 @@
   /* ═══════════ PLAYER ═══════════ */
   const SOURCES = {
     movie: (id) => [
-      { label: '⚡ AutoEmbed', url: `https://player.autoembed.cc/embed/movie/${id}` },
-      { label: '🎬 VidSrc', url: `https://vidsrc.to/embed/movie/${id}` },
-      { label: '🚀 VidSrc XYZ', url: `https://vidsrc.xyz/embed/movie?imdb=${id}` },
-      { label: '🌐 MultiEmbed', url: `https://multiembed.mov/?video_id=${id}` },
-      { label: '📺 2embed', url: `https://www.2embed.cc/embed/${id}` },
-      { label: '🔥 vidsrc.me', url: `https://vidsrc.me/embed/movie?imdb=${id}` },
+      { label: '📺 2embed (Working)', url: `https://www.2embed.cc/embed/${id}` },
+      { label: '🌐 VidLink (Multi-Audio + Hindi 🇮🇳)', url: `https://vidlink.pro/movie/${id}` },
+      { label: '⚡ AutoEmbed (Fast CDN)', url: `https://player.autoembed.cc/embed/movie/${id}` },
+      { label: '🚀 SmashyStream (Dual Audio)', url: `https://player.smashystream.com/movie/${id}` },
+      { label: '🌟 Embed.su (HD 1080p)', url: `https://embed.su/embed/movie/${id}` },
+      { label: '🎬 VidSrc v2 (1080p)', url: `https://vidsrc.cc/v2/embed/movie/${id}` },
+      { label: '🍿 MoviesAPI', url: `https://moviesapi.club/movie/${id}` },
     ],
     series: (id, s=1, e=1) => [
-      { label: '⚡ AutoEmbed', url: `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}` },
-      { label: '🎬 VidSrc', url: `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
-      { label: '🚀 VidSrc XYZ', url: `https://vidsrc.xyz/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
-      { label: '🌐 MultiEmbed', url: `https://multiembed.mov/?video_id=${id}&s=${s}&e=${e}` },
-      { label: '📺 2embed', url: `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}` },
-      { label: '🔥 vidsrc.me', url: `https://vidsrc.me/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
+      { label: '📺 2embed (Working)', url: `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}` },
+      { label: '🌐 VidLink (Multi-Audio + Hindi 🇮🇳)', url: `https://vidlink.pro/tv/${id}/${s}/${e}` },
+      { label: '⚡ AutoEmbed (Fast CDN)', url: `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}` },
+      { label: '🚀 SmashyStream (Dual Audio)', url: `https://player.smashystream.com/tv/${id}?s=${s}&e=${e}` },
+      { label: '🌟 Embed.su (HD 1080p)', url: `https://embed.su/embed/tv/${id}/${s}/${e}` },
+      { label: '🎬 VidSrc v2 (1080p)', url: `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` },
+      { label: '🍿 MoviesAPI', url: `https://moviesapi.club/tv/${id}-${s}-${e}` },
     ]
   };
 
@@ -1267,26 +1320,38 @@
     }, 400);
   }
 
-  async function performSearch(q) {
+  async function performSearch(q, forceType = null) {
     document.getElementById('search-results').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 0"><div class="spinner" style="margin:auto"></div></div>';
     try {
-      const encoded = encodeURIComponent(q);
-      const url = `${CINEMETA}/catalog/${searchFilter}/top/search=${encoded}.json`;
+      const mode = forceType || searchFilter;
+      let targetType = (mode === 'anime' || mode === 'series') ? 'series' : 'movie';
+      let queryStr = q;
+      if (mode === 'hindi') {
+        queryStr = q ? `${q} hindi` : 'hindi';
+      } else if (mode === 'anime') {
+        queryStr = q ? `${q} anime` : 'anime';
+      }
+      const encoded = encodeURIComponent(queryStr);
+      const url = `${CINEMETA}/catalog/${targetType}/top/search=${encoded}.json`;
       const r = await fetch(url);
       const d = await r.json();
-      renderSearchGrid(d.metas || []);
+      renderSearchGrid(d.metas || [], targetType);
     } catch {
       document.getElementById('search-results').innerHTML = '<div style="grid-column:1/-1;color:var(--text-muted);text-align:center;padding:60px 0">Search failed. Try again.</div>';
     }
   }
 
   async function loadCatalogIntoSearch(type) {
+    if (type === 'hindi' || type === 'anime') {
+      performSearch('', type);
+      return;
+    }
     document.getElementById('search-results').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 0"><div class="spinner" style="margin:auto"></div></div>';
     const items = await fetchCatalog(type);
-    renderSearchGrid(items);
+    renderSearchGrid(items, type);
   }
 
-  function renderSearchGrid(items) {
+  function renderSearchGrid(items, type = 'movie') {
     const grid = document.getElementById('search-results');
     grid.innerHTML = '';
     if (!items.length) {
@@ -1294,7 +1359,7 @@
       return;
     }
     items.slice(0, 60).forEach(m => {
-      const card = buildCard(m, searchFilter);
+      const card = buildCard(m, m.type || type);
       card.style.width = '100%';
       grid.appendChild(card);
     });
@@ -1305,7 +1370,7 @@
     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
     const q = document.getElementById('search-input-big').value.trim();
-    if (q.length >= 2) performSearch(q);
+    if (q.length >= 2) performSearch(q, type);
     else loadCatalogIntoSearch(type);
   }
 
