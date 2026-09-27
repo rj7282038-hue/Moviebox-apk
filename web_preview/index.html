@@ -949,7 +949,7 @@
       <div class="spinner"></div>
       <p style="color:var(--text-secondary);font-size:14px">Loading stream...</p>
     </div>
-    <iframe id="player-iframe" allowfullscreen allow="autoplay; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+    <iframe id="player-iframe" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" referrerpolicy="origin"></iframe>
   </div>
 </div>
 
@@ -1162,13 +1162,17 @@
   /* ═══════════ PLAYER ═══════════ */
   const SOURCES = {
     movie: (id) => [
+      { label: '⚡ AutoEmbed', url: `https://player.autoembed.cc/embed/movie/${id}` },
       { label: '🎬 VidSrc', url: `https://vidsrc.to/embed/movie/${id}` },
+      { label: '🚀 VidSrc XYZ', url: `https://vidsrc.xyz/embed/movie?imdb=${id}` },
       { label: '🌐 MultiEmbed', url: `https://multiembed.mov/?video_id=${id}` },
       { label: '📺 2embed', url: `https://www.2embed.cc/embed/${id}` },
       { label: '🔥 vidsrc.me', url: `https://vidsrc.me/embed/movie?imdb=${id}` },
     ],
     series: (id, s=1, e=1) => [
+      { label: '⚡ AutoEmbed', url: `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}` },
       { label: '🎬 VidSrc', url: `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
+      { label: '🚀 VidSrc XYZ', url: `https://vidsrc.xyz/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
       { label: '🌐 MultiEmbed', url: `https://multiembed.mov/?video_id=${id}&s=${s}&e=${e}` },
       { label: '📺 2embed', url: `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}` },
       { label: '🔥 vidsrc.me', url: `https://vidsrc.me/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
@@ -1177,6 +1181,7 @@
 
   let currentSources = [];
   let currentSourceIdx = 0;
+  let loadTimeout = null;
 
   function openPlayer(m, season = null, episode = null) {
     const type = m.type || 'movie';
@@ -1211,7 +1216,7 @@
     container.innerHTML = '';
     currentSources.forEach((s, i) => {
       const btn = document.createElement('button');
-      btn.className = 'source-btn' + (i === 0 ? ' active' : '');
+      btn.className = 'source-btn' + (i === currentSourceIdx ? ' active' : '');
       btn.textContent = s.label;
       btn.onclick = () => { currentSourceIdx = i; loadSource(i); renderSourceBtns(); };
       container.appendChild(btn);
@@ -1224,13 +1229,19 @@
     loading.style.display = 'flex';
     iframe.style.display = 'none';
     iframe.src = '';
+    clearTimeout(loadTimeout);
     setTimeout(() => {
       iframe.src = currentSources[idx].url;
       iframe.onload = () => {
         loading.style.display = 'none';
         iframe.style.display = 'block';
       };
-    }, 300);
+      // Fallback in case cross-origin suppresses onload event
+      loadTimeout = setTimeout(() => {
+        loading.style.display = 'none';
+        iframe.style.display = 'block';
+      }, 2000);
+    }, 250);
   }
 
   function closePlayer() {
