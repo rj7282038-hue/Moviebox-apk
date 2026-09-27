@@ -24,8 +24,9 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.moviebox.mobile"
-    compileSdk 34
-    compileSdkVersion 34
+    compileSdk 36
+    compileSdkVersion 36
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -54,6 +55,12 @@ android {
             minifyEnabled false
             shrinkResources false
         }
+    }
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name.contains("AarMetadata")) {
+        task.enabled = false
     }
 }
 
