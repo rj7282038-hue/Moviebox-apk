@@ -24,9 +24,8 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.moviebox.mobile"
-    compileSdk 36
-    compileSdkVersion 36
-    ndkVersion = "28.2.13676358"
+    compileSdk 34
+    ndkVersion "27.0.12077973"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
